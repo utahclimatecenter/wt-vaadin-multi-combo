@@ -562,12 +562,23 @@
       if (e.path === 'items' || e.path === 'items.splices') {
         this.filteredItems = this.items ? this.items.slice(0) : this.items;
 
-        var valueIndex = this._indexOfValue(this.value, this.items);
-        this._focusedIndex = valueIndex;
+        // Added by Marty I.
+        // First, split the values and loop over each one to pre-load the combo.
+        if (typeof this.value != 'undefined') {
+          var multipleValues = this.value.split(',');
+          for(var idx=0; idx<multipleValues.length; idx++) {
+            var valueIndex = this._indexOfValue(multipleValues[idx], this.items);
+            //this._focusedIndex = valueIndex;
 
-        var item = valueIndex > -1 && this.items[valueIndex];
-        if (item) {
-          this.selectedItem = item;
+            var item = valueIndex > -1 && this.items[valueIndex];
+            if (item) {
+              this.selectedItem = item;
+              this.custom = {};
+              this.custom.detail = {};
+              this.custom.detail.item = item;
+              this._overlaySelectedItemChanged(this.custom);
+            }
+          }
         }
       }
     },
@@ -641,6 +652,14 @@
       return value !== undefined && value !== null;
     },
 
+      // Added this function:  Marty I.
+    _clearAllItems: function() {
+      var multipleDiv = this.$.multi;
+      while(multipleDiv.hasChildNodes()) {
+        multipleDiv.removeChild(multipleDiv.lastChild);
+      }
+    },
+
     _overlaySelectedItemChanged: function(e) {
       var me = this;
       if (typeof e.detail != 'undefined' && typeof e.detail.item != 'undefined') {
@@ -708,7 +727,7 @@
         var multipleStr = "";
         for( i=0; i< pills.length; i++ ) {
           if (i > 0) {
-            console.log("ATTRIB",pills[i].getAttribute('info_id'));
+            //console.log("ATTRIB",pills[i].getAttribute('info_id'));
             var id = pills[i].getAttribute('info_id');
             multipleStr += "," + id;
           } else {
