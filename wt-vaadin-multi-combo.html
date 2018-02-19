@@ -66,12 +66,18 @@ Custom property | Description | Default
 -->
 
 <link rel="import" href="../polymer/polymer.html">
-<link rel="import" href="../iron-input/iron-input.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
 <link rel="import" href="../iron-validatable-behavior/iron-validatable-behavior.html">
 <link rel="import" href="../iron-a11y-announcer/iron-a11y-announcer.html">
 <link rel="import" href="../paper-input/paper-input-container.html">
 <link rel="import" href="../paper-input/paper-input-error.html">
 <link rel="import" href="../paper-icon-button/paper-icon-button.html">
+
+<link rel="import" href="../iron-icon/iron-icon.html">
+<link rel="import" href="../iron-icons/iron-icons.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../paper-dialog/paper-dialog.html">
+
 <link rel="import" href="wt-vaadin-combo-box-behavior.html">
 <link rel="import" href="wt-vaadin-combo-box-overlay.html">
 <link rel="import" href="wt-vaadin-combo-box-shared-styles.html">
@@ -221,6 +227,11 @@ Custom property | Description | Default
       }
     </style>
 
+    <iron-ajax
+      id="crud-ajax"
+      headers='{"X-Requested-With": "XMLHttpRequest"}'
+      handle-as="json"
+      headers='{"Cache-control": "no-cache"}'></iron-ajax>
 
     <paper-input-container
       id="inputContainer"
@@ -295,12 +306,18 @@ Custom property | Description | Default
       </div>
 
 
+      <paper-dialog id="errorDialog" class="colored" closed>
+        <paper-icon-button id="close-dialog" icon="close" on-click="_handleErrClose"  title="Close"></paper-icon-button>
+        <center><h2>ERROR</h2></center>
+        <div id="error-content"></div>
+      </paper-dialog>
+
       <template is="dom-if" if="[[errorMessage]]">
         <paper-input-error>[[errorMessage]]</paper-input-error>
       </template>
     </paper-input-container>
 
-    <vaadin-combo-box-overlay id="overlay"
+    <wt-vaadin-combo-box-overlay id="overlay"
       opened$=[[opened]]
       position-target="[[_getPositionTarget()]]"
       _focused-index="[[_focusedIndex]]"
@@ -310,7 +327,7 @@ Custom property | Description | Default
       loading="[[loading]]"
       on-mousedown="_preventDefault"
       vertical-offset="2">
-    </vaadin-combo-box-overlay>
+    </wt-vaadin-combo-box-overlay>
   </template>
 </dom-module>
 
@@ -447,6 +464,11 @@ Custom property | Description | Default
         readOnly: true,
         reflectToAttribute: true,
         notify: true
+      },
+
+      url: {
+        type: String,
+        value: ""
       }
     },
 
@@ -473,10 +495,53 @@ Custom property | Description | Default
         input.value = "";
       });
 
+      // Load the url if it is set.
+      console.log(this.url)
+      if (this.url.length > 0) {
+        this._urlAjax(this.url);
+      }
+
       var inputContainer = me.$.inputContainer;
 
       this._setInputElement(this.$.input);
       this._bindableInput = this.$.ironinput;
+    },
+
+    _urlAjax() {
+      var me = this;
+      var ajax = Polymer.dom(me.root).querySelector('#crud-ajax');
+      ajax.url = me.url;
+
+      if (typeof me.url != "") {
+        ajax.params['xaction'] = "get-multi-combo-"+me.name;
+        var request = ajax.generateRequest();
+
+        request.completes.then(function(req) {
+              if ( req.response.success == true) {
+                if (typeof req.response.payload !== 'undefined') {
+                  me.items = req.response.payload
+                }
+              } else {
+                var errDialog = Polymer.dom(me.root).querySelector("#errorDialog");
+                var error = Polymer.dom(me.root).querySelector("#error-content");
+                error.innerHTML = req.response.errors[0].msg;
+                errDialog.open();
+                return;
+              }
+            }, function(rejected) {
+              // failed request, argument is an object
+              let req = rejected.request;
+              let error = rejected.error;
+              console.log("FAILED",error)
+              //...
+            }
+          );
+      }
+    },
+
+    _handleErrClose() {
+      var dialog = Polymer.dom(this.root).querySelector("#errorDialog");
+      dialog.close();
     },
 
     attached: function() {

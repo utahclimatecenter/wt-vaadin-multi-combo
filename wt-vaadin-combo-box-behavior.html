@@ -564,7 +564,8 @@
 
         // Added by Marty I.
         // First, split the values and loop over each one to pre-load the combo.
-        if (typeof this.value != 'undefined') {
+        if (typeof this.value !== 'undefined') {
+          if (typeof this.value !== 'string') { this.value = this.value.toString(); }
           var multipleValues = this.value.split(',');
           for(var idx=0; idx<multipleValues.length; idx++) {
             var valueIndex = this._indexOfValue(multipleValues[idx], this.items);
@@ -577,6 +578,17 @@
               this.custom.detail = {};
               this.custom.detail.item = item;
               this._overlaySelectedItemChanged(this.custom);
+            } else {
+              // If this failes try converting to an integer
+              var valueIndex = this._indexOfValue(parseInt(multipleValues[idx]), this.items);
+              var item = valueIndex > -1 && this.items[valueIndex];
+              if (item) {
+                this.selectedItem = item;
+                this.custom = {};
+                this.custom.detail = {};
+                this.custom.detail.item = item;
+                this._overlaySelectedItemChanged(this.custom);
+              }
             }
           }
         }
@@ -704,7 +716,7 @@
           var clearBtn = document.createElement('paper-icon-button');
           clearBtn.setAttribute("id","clearIcon");
           clearBtn.setAttribute("aria-lable","Delete");
-          clearBtn.setAttribute("icon","vaadin-combo-box:clear");
+          clearBtn.setAttribute("icon","wt-vaadin-multi-combo:clear");
           clearBtn.setAttribute("class","clear-button");
 
           pill.appendChild(txtDiv);
